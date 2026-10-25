@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'none'">
+<title>武汉地铁官方线网资料</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font:13px 'Microsoft YaHei',sans-serif;background:#fff;color:#243149}body{display:flex;flex-direction:column}header{padding:8px;background:#f3f5fd;border-bottom:1px solid #d4dceb;flex-shrink:0}.search{display:flex;gap:5px}input{min-width:0;flex:1}input,button,select{font:inherit;border:1px solid #b4c3d8;border-radius:8px;background:#fff;color:#243149;padding:8px;min-height:38px}button{cursor:pointer}select{margin-top:6px;width:100%}#status{font-size:11px;margin:6px 1px 0;color:#5d6f89;min-height:16px}main{position:relative;flex:1;min-height:0;overflow:hidden}svg{width:100%;height:100%;display:block;touch-action:none;user-select:none}text{font-family:'Microsoft YaHei','Noto Sans CJK SC',sans-serif;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;pointer-events:none}.station{cursor:pointer;outline:0}.station:focus>circle{stroke:#ed80b7;stroke-width:7}.controls{position:absolute;right:9px;bottom:12px;display:flex;flex-direction:column;gap:5px}.controls button{box-shadow:0 2px 8px #29334c15;min-width:40px}footer{padding:6px 10px;font-size:10px;color:#63738d;background:#f3f5fd;border-top:1px solid #d4dceb;flex-shrink:0}
+</style></head><body>
+<header><div class="search"><input id="search" aria-label="搜索地铁站" placeholder="输入站名，如洪山广场" maxlength="40"><button id="find">搜索</button></div><select id="line" aria-label="选择地铁线路"><option value="">全部线路</option></select><p id="status" role="status">双指缩放或拖动，点击站点查看所属线路</p></header>
+<main><svg id="map" xmlns="http://www.w3.org/2000/svg" aria-label="武汉地铁线路图"></svg><div class="controls"><button id="plus" aria-label="放大">＋</button><button id="minus" aria-label="缩小">－</button><button id="reset">全图</button></div></main>
+<footer>武汉地铁官方公开线网资料 · 2026-10-25 采集 · 静态线路示意，非实时列车位置</footer>
+<script>
+'use strict';
+const data=__METRO_DATA__;
+const svg=document.getElementById('map'),status=document.getElementById('status'),lineSelect=document.getElementById('line');
+const lookup=new Map(data.stations.map(s=>[s.id,s])),ns='http://www.w3.org/2000/svg';
+const xs=data.stations.map(s=>s.x),ys=data.stations.map(s=>s.y);
+const full=[Math.min(...xs)-110,Math.min(...ys)-100,Math.max(...xs)-Math.min(...xs)+220,Math.max(...ys)-Math.min(...ys)+200];
+let box=full.slice(),highlight=null;
+function element(name,attrs={},text){const node=document.createElementNS(ns,name);for(const [k,v]of Object.entries(attrs))node.setAttribute(k,String(v));if(text!==undefined)node.textContent=text;return node;}
+function apply(){svg.setAttribute('viewBox',box.join(' '));svg.dataset.zoom=String(full[2]/box[2]);}
+function point(id){return lookup.get(id);}
+function render(){
+ svg.replaceChildren();
+ for(const segment of data.segments??[]){const a=point(segment.stationA),b=point(segment.stationB);if(a&&b)svg.append(element('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:'#7890a6','stroke-width':4,'stroke-dasharray':'8 5'}));}
+ for(const line of data.lines){
+  const points=[];
+  line.stationIds.forEach((id,i)=>{const p=point(id),c=p?.connectors?.[line.id];if(p)points.push([p.x+(c?.dx??0),p.y+(c?.dy??0)]);for(const w of line.waypoints?.[String(i)]??[])points.push([w.x,w.y]);});
+  svg.append(element('polyline',{points:points.map(p=>p.join(',')).join(' '),fill:'none',stroke:line.color,'stroke-width':7,'stroke-linecap':'round','stroke-linejoin':'round',opacity:!lineSelect.value||lineSelect.value===line.id?1:.16}));
+ }
+ for(const station of data.stations){
+  const active=!lineSelect.value||station.lines.includes(lineSelect.value);const selected=station.id===highlight;
+  const group=element('g',{class:'station',role:'button',tabindex:0,'aria-label':station.name,'data-station-id':station.id,opacity:active?1:.2});
+  if(selected)group.append(element('circle',{cx:station.x,cy:station.y,r:24,fill:'#f2a8cb99',stroke:'#dd5b9e','stroke-width':3}));
+  group.append(element('circle',{cx:station.x,cy:station.y,r:station.isTransfer?9:6,fill:'#fff',stroke:station.isTransfer?'#2083b7':'#6e8aa0','stroke-width':station.isTransfer?3:2}));
+  const anchor=station.textAlign==='right'?'end':station.textAlign==='center'?'middle':'start';
+  group.append(element('text',{x:station.x+(station.labelDx??0)+(anchor==='start'?11:anchor==='end'?-11:0),y:station.y-12+(station.labelDy??0),fill:'#26374d','font-size':station.boldName?16:13,'font-weight':station.boldName?700:400,'text-anchor':anchor},station.name));
+  const select=()=>focusStation(station);group.addEventListener('click',select);group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}});svg.append(group);
+ }
+ apply();
+}
+function focusStation(station){highlight=station.id;const width=Math.min(box[2],500);box=[station.x-width/2,station.y-width/2,width,width];status.textContent=station.name+' · '+station.lines.map(id=>data.lines.find(l=>l.id===id)?.name??id).join(' / ');render();}
+function search(){const input=document.getElementById('search'),term=input.value.trim();if(!term){status.textContent='请输入站名';return;}const exact=data.stations.find(s=>s.name===term)??lookup.get(term),matches=data.stations.filter(s=>s.name.includes(term));if(exact||matches.length===1){focusStation(exact??matches[0]);input.blur();}else status.textContent=matches.length?'匹配多个站点：'+matches.slice(0,6).map(s=>s.name).join('、'):'未找到站点，请输入官方站名';}
+function zoom(factor){const width=Math.max(170,Math.min(full[2]*1.5,box[2]*factor)),height=box[3]*width/box[2];box=[box[0]+(box[2]-width)/2,box[1]+(box[3]-height)/2,width,height];apply();}
+for(const line of data.lines){const option=document.createElement('option');option.value=line.id;option.textContent=line.name;lineSelect.append(option);}
+lineSelect.addEventListener('change',()=>{status.textContent=lineSelect.value?'已突出显示 '+lineSelect.selectedOptions[0].textContent:'显示全部官方线路';render();});
+document.getElementById('find').addEventListener('click',search);document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter')search();});
+document.getElementById('plus').addEventListener('click',()=>zoom(.7));document.getElementById('minus').addEventListener('click',()=>zoom(1.4));document.getElementById('reset').addEventListener('click',()=>{box=full.slice();highlight=null;render();status.textContent='已恢复全图';});
+svg.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY>0?1.12:.89);},{passive:false});
+const pointers=new Map();let previous=null,tap=null;
+function gesture(){const ps=[...pointers.values()];return ps.length>=2?{x:(ps[0].x+ps[1].x)/2,y:(ps[0].y+ps[1].y)/2,d:Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y)}:ps.length?{...ps[0],d:0}:null;}
+svg.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});tap=pointers.size===1?{x:e.clientX,y:e.clientY,id:e.target.closest('[data-station-id]')?.dataset.stationId}:null;svg.setPointerCapture(e.pointerId);previous=gesture();});
+svg.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;if(tap&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)>7)tap=null;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});const next=gesture();if(previous&&next){const scale=Math.min(svg.clientWidth/box[2],svg.clientHeight/box[3]);box[0]-=(next.x-previous.x)/scale;box[1]-=(next.y-previous.y)/scale;if(previous.d>0&&next.d>0)zoom(previous.d/next.d);else apply();}previous=next;});
+function end(e){const selected=tap?.id&&lookup.get(tap.id);pointers.delete(e.pointerId);previous=gesture();tap=null;if(e.type==='pointerup'&&selected)focusStation(selected);}svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+render();
+</script></body></html>

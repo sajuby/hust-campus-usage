@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "tokens": {
+    "background": "#0B0E18",
+    "surface": "#161C2B",
+    "card": "#F3F5FD",
+    "pink": "#F2A8CB",
+    "blue": "#BFE6FF",
+    "purple": "#B8A7F4",
+    "text": "#E9ECFB",
+    "ink": "#141A2B",
+    "radius": 22,
+    "gap": 12,
+    "pagePadding": 16,
+    "bodySize": 14,
+    "valueSize": 29,
+    "heroHeight": 142,
+    "glow": true
+  },
+  "copy": {
+    "appTitle": "校园用量助手",
+    "greeting": "同学，早上好。",
+    "subtitle": "把校园日常，交给一点星光。",
+    "heroNote": "新的一天\n从清晰的用量开始",
+    "quickTitle": "快捷功能",
+    "trendTitle": "近 7 日用量趋势",
+    "noticeTitle": "慢一点，数据也会准时抵达",
+    "noticeBody": "每日用量一般于次日早上 8 点后可查。",
+    "electricityLabel": "最近一日用电",
+    "energyLabel": "最近一日能源",
+    "monthLabel": "本月已取得用电",
+    "balanceLabel": "校园网余额"
+  },
+  "layout": {
+    "sections": [
+      "hero",
+      "summary",
+      "quick",
+      "trend",
+      "notice"
+    ],
+    "cards": [
+      "electricity",
+      "energy",
+      "month",
+      "balance"
+    ]
+  }
+}

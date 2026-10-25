@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+ <defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#8db8e8"/><stop offset=".65" stop-color="#e3ecff"/><stop offset="1" stop-color="#fff3fa"/></linearGradient>
+  <linearGradient id="glass" x2="1" y2="1"><stop stop-color="#fffaff"/><stop offset=".4" stop-color="#b9d9ff"/><stop offset=".7" stop-color="#f2d8f0"/><stop offset="1" stop-color="#9bbfe6"/></linearGradient>
+  <linearGradient id="water" x2="0" y2="1"><stop stop-color="#b3d8ef"/><stop offset="1" stop-color="#f3ecfb"/></linearGradient>
+  <radialGradient id="light"><stop stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <g id="spire"><path d="M-18 0V-115L0-177 18-115V0" fill="url(#glass)" stroke="#f7fcff" stroke-width="3"/><path d="M0-177V-209M-18-115H18M0-115V0" stroke="#f6fbff" stroke-width="3"/><path d="M-10-92Q0-119 10-92V-18H-10Z" fill="#8ba8d1" opacity=".55"/></g>
+  <g id="tree"><path d="M0 25V-65M0-10L-38-56M-7-34L27-84M-20-40L-56-36" fill="none" stroke="#967d9e" stroke-width="5"/><g fill="#f9d8ed"><circle cx="-40" cy="-67" r="29"/><circle cx="-12" cy="-95" r="30"/><circle cx="27" cy="-99" r="33"/><circle cx="53" cy="-66" r="28"/><circle cx="-6" cy="-58" r="36"/></g><g fill="#fff1fb"><circle cx="-48" cy="-77" r="18"/><circle cx="7" cy="-112" r="21"/><circle cx="40" cy="-87" r="16"/></g></g>
+ </defs>
+ <path fill="url(#sky)" d="M0 0h1200v500H0z"/>
+ <ellipse cx="625" cy="115" rx="370" ry="210" fill="url(#light)"/>
+ <g fill="none" stroke="#fff" opacity=".58"><path d="M0 100Q240 5 450 100T900 70T1200 80" stroke-width="17"/><path d="M740 30Q940 140 1200 50" stroke-width="8"/></g>
+ <g fill="#a8bede" opacity=".5"><path d="M100 330V197h40V132l16-43 18 43v198m52 0V181h39v-42h20v191m652 0V180h37V99l18-45 18 45v231m-560 0V162h35V96h14v234m500 0V212h42v-62h26v180"/></g>
+ <path d="M0 345Q200 280 390 331T780 327T1200 320V500H0" fill="#dbe8ef"/>
+ <path d="M300 339Q600 313 900 339L1090 500H100Z" fill="url(#water)"/>
+ <g transform="translate(600 330)">
+  <path d="M-260 0V-98L-175-147-94-98V0M260 0V-98L175-147 94-98V0" fill="url(#glass)" stroke="#f7fbff" stroke-width="4"/>
+  <use href="#spire" x="-250"/><use href="#spire" x="250"/><use href="#spire" x="-162" y="-25"/><use href="#spire" x="162" y="-25"/>
+  <path d="M-100 0V-160Q0-281 100-160V0H57V-151Q0-222-57-151V0Z" fill="url(#glass)" stroke="#fff" stroke-width="5"/>
+  <path d="M-66 0V-135Q0-219 66-135V0H45V-124Q0-184-45-124V0Z" fill="#eaf8ff" stroke="#b9def2" stroke-width="3"/>
+  <path d="M-18-17V-96Q0-122 18-96V-17" fill="#89accb"/>
+  <use href="#spire" x="-100" y="-35"/><use href="#spire" x="100" y="-35"/>
+  <path d="M-18-182V-241L0-306 18-241V-182" fill="url(#glass)" stroke="#fff" stroke-width="3"/>
+  <path d="M0-306V-332" stroke="#fff" stroke-width="2"/>
+  <g fill="#94adcb" opacity=".65"><path d="M-224-18V-76Q-210-103-196-76V-18m38 0V-76Q-144-103-130-76V-18M130-18V-76Q144-103 158-76V-18m38 0V-76Q210-103 224-76V-18"/></g>
+  <path d="M-292 0H292M-260 10H260M-220 20H220" stroke="#fff" stroke-width="5"/>
+ </g>
+ <g opacity=".93"><use href="#tree" transform="translate(105 335) scale(1.25)"/><use href="#tree" transform="translate(230 345) scale(.75)"/><use href="#tree" transform="translate(1020 345) scale(.95)"/><use href="#tree" transform="translate(1140 330) scale(1.35)"/><use href="#tree" transform="translate(340 350) scale(.45)"/><use href="#tree" transform="translate(910 350) scale(.5)"/></g>
+ <g fill="none" stroke="#fff" opacity=".7"><ellipse cx="605" cy="379" rx="193" ry="12"/><ellipse cx="602" cy="420" rx="281" ry="13"/><path d="M390 450h210m60 0h142"/></g>
+ <path d="M-20 378Q190 300 435 391T1220 348" fill="none" stroke="#ffe7f5" stroke-width="16" opacity=".8"/>
+ <path d="M-20 381Q190 303 435 394T1220 351" fill="none" stroke="#fff" stroke-width="3"/>
+ <g fill="#fff"><path d="m874 82 3 13 14 3-14 3-3 14-3-14-13-3 13-3Z"/><path d="m348 65 2 9 9 2-9 2-2 9-2-9-9-2 9-2Z"/></g>
+ <g fill="#f7c5e2" opacity=".9"><ellipse cx="84" cy="131" rx="8" ry="3" transform="rotate(-30 84 131)"/><ellipse cx="321" cy="202" rx="7" ry="3"/><ellipse cx="1012" cy="177" rx="7" ry="3" transform="rotate(25 1012 177)"/><ellipse cx="950" cy="404" rx="8" ry="3"/></g>
+</svg>

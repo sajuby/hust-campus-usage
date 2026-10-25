@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <!-- The verified official main-campus portal currently serves HTTP only. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">sdhq.hust.edu.cn</domain>
+    </domain-config>
+</network-security-config>

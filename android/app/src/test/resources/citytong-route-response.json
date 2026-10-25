@@ -1,0 +1,176 @@
+{
+  "code": "1000",
+  "message": "synthetic test fixture",
+  "result": {
+    "metroColor": {
+      "demo-line-1": {
+        "color": "#E36697"
+      },
+      "demo-line-2": {
+        "color": "#65BBDC"
+      }
+    },
+    "transits": [
+      {
+        "cost": {
+          "duration": "2520",
+          "transitFee": "4"
+        },
+        "segments": [
+          {
+            "bus": {
+              "buslines": [
+                {
+                  "id": "demo-line-1",
+                  "name": "示例地铁1号线(示例始发站--示例终点站)",
+                  "type": "地铁",
+                  "departureStop": {
+                    "id": "demo-stop-1",
+                    "name": "示例始发站"
+                  },
+                  "arrivalStop": {
+                    "id": "demo-stop-4",
+                    "name": "示例换乘站"
+                  },
+                  "viaStops": [
+                    {
+                      "id": "demo-stop-2",
+                      "name": "示例站甲"
+                    },
+                    {
+                      "id": "demo-stop-3",
+                      "name": "示例站乙"
+                    }
+                  ],
+                  "cost": {
+                    "duration": "1800"
+                  },
+                  "startTime": "0600",
+                  "endTime": "2230"
+                }
+              ]
+            }
+          },
+          {
+            "bus": {
+              "buslines": [
+                {
+                  "id": "demo-line-2",
+                  "name": "示例地铁2号线(示例始发站--示例终点站)",
+                  "type": "地铁",
+                  "departureStop": {
+                    "id": "demo-stop-4",
+                    "name": "示例换乘站"
+                  },
+                  "arrivalStop": {
+                    "id": "demo-stop-6",
+                    "name": "示例终点站"
+                  },
+                  "viaStops": [
+                    {
+                      "id": "demo-stop-5",
+                      "name": "示例站丙"
+                    }
+                  ],
+                  "cost": {
+                    "duration": "600"
+                  },
+                  "startTime": "0600",
+                  "endTime": "2230"
+                }
+              ]
+            }
+          },
+          {
+            "walking": {
+              "distance": "100",
+              "cost": {
+                "duration": "120"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "cost": {
+          "duration": "2520",
+          "transitFee": "4"
+        },
+        "segments": [
+          {
+            "bus": {
+              "buslines": [
+                {
+                  "id": "demo-line-1",
+                  "name": "示例地铁1号线(示例始发站--示例终点站)",
+                  "type": "地铁",
+                  "departureStop": {
+                    "id": "demo-stop-1",
+                    "name": "示例始发站"
+                  },
+                  "arrivalStop": {
+                    "id": "demo-stop-4",
+                    "name": "示例换乘站"
+                  },
+                  "viaStops": [
+                    {
+                      "id": "demo-stop-2",
+                      "name": "示例站甲"
+                    },
+                    {
+                      "id": "demo-stop-3",
+                      "name": "示例站乙"
+                    }
+                  ],
+                  "cost": {
+                    "duration": "1800"
+                  },
+                  "startTime": "0600",
+                  "endTime": "2230"
+                }
+              ]
+            }
+          },
+          {
+            "bus": {
+              "buslines": [
+                {
+                  "id": "demo-line-2",
+                  "name": "示例地铁2号线(示例始发站--示例终点站)",
+                  "type": "地铁",
+                  "departureStop": {
+                    "id": "demo-stop-4",
+                    "name": "示例换乘站"
+                  },
+                  "arrivalStop": {
+                    "id": "demo-stop-6",
+                    "name": "示例终点站"
+                  },
+                  "viaStops": [
+                    {
+                      "id": "demo-stop-5",
+                      "name": "示例站丙"
+                    }
+                  ],
+                  "cost": {
+                    "duration": "600"
+                  },
+                  "startTime": "0600",
+                  "endTime": "2230"
+                }
+              ]
+            }
+          },
+          {
+            "walking": {
+              "distance": "100",
+              "cost": {
+                "duration": "120"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

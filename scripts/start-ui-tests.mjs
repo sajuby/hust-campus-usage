@@ -1,0 +1,11 @@
+import {copyFile,mkdir} from 'node:fs/promises';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path';
+const root=fileURLToPath(new URL('..',import.meta.url));
+const directory=resolve(root,'.cache/ui-test-design');
+await mkdir(directory,{recursive:true});
+await copyFile(resolve(root,'design/project.json'),resolve(directory,'project.json'));
+const child=spawn(process.execPath,[resolve(root,'node_modules/vite/bin/vite.js'),'--host','127.0.0.1','--port','5174','--strictPort'],{cwd:resolve(root,'ui-preview'),stdio:'inherit',env:{...process.env,CAMPUS_TEST_CONFIG_DIR:directory},windowsHide:true});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>child.kill(signal));
+child.on('exit',code=>{process.exitCode=code??1;});

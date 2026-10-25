@@ -1,0 +1,24 @@
+import {test,expect} from '@playwright/test';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+test('character pages use live controls and preserve the complete original trend image',async({page,request})=>{
+ await page.goto('/');await expect(page.locator('.save-state')).toContainText('已保存');
+ await expect(page.locator('.character-hero img')).toBeVisible();
+ await page.getByRole('button',{name:'更新首页用电',exact:true}).click();
+ await expect(page.getByRole('button',{name:'更新首页用电',exact:true})).toBeDisabled();
+ await expect(page.getByRole('button',{name:'更新首页用电',exact:true})).toBeEnabled();
+ await page.locator('.character-quick').getByRole('button',{name:'查路线',exact:true}).click();
+ await expect(page.getByRole('button',{name:'查询路线',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'手机趋势',exact:true}).click();
+ const img=page.locator('.character-trend-original');await expect(img).toBeVisible();
+ const info=await img.evaluate(async img=>{const i=img as HTMLImageElement;await i.decode();const r=i.getBoundingClientRect(),s=getComputedStyle(i);return{url:i.src,width:r.width,height:r.height,nw:i.naturalWidth,nh:i.naturalHeight,filter:s.filter,transform:s.transform,opacity:s.opacity,fit:s.objectFit};});
+ expect(info.nw).toBe(1256);expect(info.nh).toBe(708);expect(info.width/info.height).toBeCloseTo(1256/708,2);
+ expect(info.filter).toBe('none');expect(info.transform).toBe('none');expect(info.opacity).toBe('1');expect(info.fit).toBe('contain');
+ const bytes=await(await request.get(info.url)).body();const original=readFileSync('design/assets/character-trends-original.jpg');
+ expect(createHash('sha256').update(bytes).digest('hex')).toBe(createHash('sha256').update(original).digest('hex'));
+ await page.getByLabel('趋势日期范围').selectOption('30');await expect(page.locator('.character-chart-summary')).toContainText('近30日');
+ await page.locator('.character-filters').getByRole('button',{name:'能源',exact:true}).click();await expect(page.locator('.character-chart-summary strong')).toContainText('0.00');
+ await page.getByRole('button',{name:'手机我的',exact:true}).click();await expect(page.locator('.character-profile-hero img')).toBeVisible();
+ await page.locator('.character-settings summary').click();await expect(page.locator('.connection')).toHaveCount(2);
+ await page.locator('.phone').screenshot({path:'artifacts/character-studio-profile.png'});
+});

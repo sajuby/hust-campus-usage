@@ -1,0 +1,26 @@
+import {createContext,useContext,useEffect,useState,type ReactNode} from 'react';
+import {createPortal} from 'react-dom';
+export type ArtSlot='HOME'|'TRENDS'|'PROFILE'|'BACKGROUND';
+const labels:Record<ArtSlot,string>={HOME:'首页人物',TRENDS:'趋势配图',PROFILE:'我的人物',BACKGROUND:'背景图片'};
+interface AppearanceContextValue {images:Partial<Record<ArtSlot,string>>;select:(slot:ArtSlot,file:File)=>Promise<void>;reset:(slot?:ArtSlot)=>Promise<void>;ready:boolean;busy:boolean;message:string}
+const Context=createContext<AppearanceContextValue|null>(null);
+function database(){return new Promise<IDBDatabase>((resolve,reject)=>{const r=indexedDB.open('campus-local-appearance',1);r.onupgradeneeded=()=>r.result.createObjectStore('images');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+async function store(slot:ArtSlot|undefined,file?:Blob){const db=await database();try{await new Promise<void>((resolve,reject)=>{const tx=db.transaction('images','readwrite'),s=tx.objectStore('images');if(slot){if(file)s.put(file,slot);else s.delete(slot);}else s.clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}finally{db.close();}}
+export function AppearanceProvider({children}:{children:ReactNode}){
+ const[images,setImages]=useState<Partial<Record<ArtSlot,string>>>({}),[ready,setReady]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+ useEffect(()=>{let active=true;database().then(db=>new Promise<Partial<Record<ArtSlot,string>>>((resolve,reject)=>{const tx=db.transaction('images'),s=tx.objectStore('images'),items:Partial<Record<ArtSlot,string>>={};Object.keys(labels).forEach(slot=>{const q=s.get(slot);q.onsuccess=()=>{if(q.result instanceof Blob)items[slot as ArtSlot]=URL.createObjectURL(q.result);};});tx.oncomplete=()=>{db.close();resolve(items);};tx.onerror=()=>{db.close();reject(tx.error);};})).then(v=>{if(active)setImages(v);else Object.values(v).forEach(URL.revokeObjectURL);}).catch(()=>{if(active)setMessage('本地图片存储暂不可用，请检查浏览器设置');}).finally(()=>{if(active)setReady(true);});return()=>{active=false;};},[]);
+ async function select(slot:ArtSlot,file:File){if(busy)return;setBusy(true);try{
+  if(!file.type.startsWith('image/')||file.size>32*1024*1024)throw Error('请选择不超过 32 MB 的图片');
+  const bitmap=await createImageBitmap(file);if(!bitmap.width||!bitmap.height)throw Error('无法读取图片');bitmap.close();
+  await store(slot,file);const url=URL.createObjectURL(file);setImages(v=>{if(v[slot])URL.revokeObjectURL(v[slot]!);return{...v,[slot]:url};});setMessage(labels[slot]+'已更换，仅保存在当前浏览器');
+ }catch(e){setMessage(e instanceof Error?e.message:'未能读取图片，原设置保留');}finally{setBusy(false);}}
+ async function reset(slot?:ArtSlot){if(busy)return;setBusy(true);try{await store(slot);setImages(v=>{if(!slot){Object.values(v).forEach(URL.revokeObjectURL);return{};}const next={...v};if(next[slot])URL.revokeObjectURL(next[slot]!);delete next[slot];return next;});setMessage(slot?labels[slot]+'已恢复默认':'已全部恢复默认图片');}catch{setMessage('恢复默认未完成，请重试');}finally{setBusy(false);}}
+ return <Context.Provider value={{images,select,reset,ready,busy,message}}>{children}</Context.Provider>;
+}
+export function useAppearance(){const value=useContext(Context);if(!value)throw Error('AppearanceProvider missing');return value;}
+export function AppearanceEditor({defaults,onClose}:{defaults:Record<ArtSlot,string>;onClose:()=>void}){
+ const a=useAppearance();return createPortal(<div className="appearance-backdrop"><section className="appearance-dialog" role="dialog" aria-label="主题与外观"><header><button onClick={onClose}>返回</button><h2>主题与外观</h2><button disabled={a.busy} onClick={()=>a.reset()}>全部恢复默认</button></header><p>本地选图，不向服务器上传。电脑图片仅保存于当前浏览器；手机请在 App 内分别选择，工作台应用设计不会携带这些图片。</p>{a.message&&<p role="status">{a.message}</p>}<div>{(Object.keys(labels) as ArtSlot[]).map(slot=><section className="appearance-slot" key={slot}><h3>{labels[slot]}<small>{a.images[slot]?'本地图片':'默认图片'}</small></h3><img src={a.images[slot]??defaults[slot]} alt={labels[slot]+'预览'}/><div><label className="appearance-choose">选择{labels[slot]}<input aria-label={'选择'+labels[slot]} type="file" accept="image/*" disabled={a.busy} onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';if(file)void a.select(slot,file);}}/></label><button disabled={a.busy||!a.images[slot]} onClick={()=>a.reset(slot)}>恢复默认</button></div></section>)}</div></section></div>,document.body);
+}
+export type Campus='CYBER'|'MAIN';
+export function CampusPicker({campus,onChange}:{campus:Campus;onChange:(c:Campus)=>void}){return <select className="campus-picker" aria-label="水电查询校区" value={campus} onChange={e=>onChange(e.target.value as Campus)}><option value="CYBER">网安基地</option><option value="MAIN">主校区</option></select>;}
+export function MainCampusEntry(){return <section className="character-panel main-campus-entry"><h3>主校区 · 水电查询</h3><p>主校区使用企业微信“水电费充值”对应的独立官方平台。房间信息、昨日用量、计费及历史用量以官方页面为准。</p><p>主校区水电与网安基地记录分开显示，尚未绑定房间时请在官方页面自行选择本人房间。</p><p>此处为电脑预览；电脑查询请从企业微信工作台打开该入口，手机 App 已提供独立查询页。</p><a href="http://sdhq.hust.edu.cn/MobileUtilityPay1/#/home" target="_blank" rel="noreferrer">打开主校区水电查询 ↗</a><a href="http://sdhq.hust.edu.cn/MobileUtilityPay1/#/recently" target="_blank" rel="noreferrer">查看主校区历史用量 ↗</a></section>;}

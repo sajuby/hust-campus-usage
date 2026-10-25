@@ -1,0 +1,19 @@
+{
+  "name": "campus-usage-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": ["ui-preview"],
+  "scripts": {
+    "dev": "npm run dev --workspace ui-preview",
+    "build": "npm run build --workspace ui-preview",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:ui": "playwright test",
+    "sync:android": "node scripts/sync-design.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "^24.0.0",
+    "typescript": "5.9.3"
+  }
+}
