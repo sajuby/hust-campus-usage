@@ -4,6 +4,22 @@
 
 目前为开发版本，应用版本为 `0.5.0`。已适配华中科技大学网安基地的水电能源查询与校园网套餐入口；主校区水电费通过独立的官方页面查询。
 
+## 直接下载安装 APK
+
+如果只想直接使用，无需下载源码或配置开发环境，下载 APK 后在 Android 手机上安装即可。
+
+- [直接下载 APK：0.5.0 开发预览版](https://github.com/sajuby/hust-campus-usage/releases/download/v0.5.0-preview.1/hust-campus-usage-0.5.0-preview.1.apk)
+- [查看版本页面及下载附件](https://github.com/sajuby/hust-campus-usage/releases/tag/v0.5.0-preview.1)
+- [下载 SHA-256 校验文件](https://github.com/sajuby/hust-campus-usage/releases/download/v0.5.0-preview.1/hust-campus-usage-0.5.0-preview.1.apk.sha256)
+
+APK 在仓库中的位置：**Releases → v0.5.0-preview.1 → hust-campus-usage-0.5.0-preview.1.apk**。安装包存放在 Releases 附件中，源码目录不包含 APK。
+
+支持 **Android 12（API 31）及以上**。下载后在手机打开 APK，按系统提示允许当前浏览器或文件管理器安装应用。安装完成后，在“我的”中连接自己的学校账户即可查询；安装包不附带任何人的账户、登录状态或账单记录。
+
+当前为 `0.5.0-dev` 调试签名的开发预览版，安装后名称为“校园用量助手·开发版”。主校区水电费仍使用官方查询页面。
+
+本次公开安装包与此前本地测试包签名不同，不能直接覆盖旧测试包。已有旧测试版时，请先保留需要的数据，再卸载后安装；卸载会清除本地登录和自定义图片设置。
+
 ## 功能
 
 - 用量查询：电费、能源费支持切换日期、查看日/月数据和历史趋势；点击“更新”主动请求服务端数据。
