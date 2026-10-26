@@ -28,6 +28,10 @@ import androidx.lifecycle.lifecycleScope
 import dev.campususage.app.data.SchoolRepository
 import dev.campususage.app.data.auth.*
 import dev.campususage.app.data.remote.NetworkClient
+import dev.campususage.app.data.remote.NetworkCookies
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import androidx.webkit.CookieManagerCompat
+import androidx.webkit.WebViewFeature
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -111,7 +115,7 @@ class SchoolLoginActivity : ComponentActivity() {
                         override fun onPageFinished(view: WebView, url: String) { checkPortal(view) }
                     }
                     lifecycleScope.launch {
-                        val saved = withContext(Dispatchers.IO) { school.sessions.read("network")?.optJSONArray("cookies") }
+                        val saved = withContext(Dispatchers.IO) { school.sessions.read("network")?.let { NetworkCookies.browserSnapshot(it) } }
                         val manager = CookieManager.getInstance()
                         manager.removeAllCookies {
                             val entries = if (saved == null) emptyList() else (0 until saved.length()).map { saved.getJSONObject(it) }
@@ -134,16 +138,20 @@ class SchoolLoginActivity : ComponentActivity() {
             val identifier = runCatching { JSONTokener(value).nextValue() as? String }.getOrNull()?.takeIf { it.isNotBlank() } ?: return@evaluateJavascript
             val cookies = JSONArray()
             for (host in listOf("hkwxy.hust.edu.cn", "pass.hust.edu.cn")) {
-                val path = if (host.startsWith("hkwxy")) "/tp_up/" else "/cas/"
-                val seen = mutableSetOf<String>()
-                CookieManager.getInstance().getCookie("https://$host$path")?.split(';')?.forEach { pair ->
-                    if (pair.contains('=') && seen.add(pair.substringBefore('=').trim())) cookies.put(JSONObject().put("origin", host).put("raw", pair.trim() + "; Path=$path; Secure; HttpOnly"))
-                }
+                val path = if (host.startsWith("hkwxy")) "/tp_up/apps/campusNetwork/servicePlan" else "/cas/login"
+                val url = "https://$host$path"
+                val manager = CookieManager.getInstance()
+                val full = if (WebViewFeature.isFeatureSupported(WebViewFeature.GET_COOKIE_INFO))
+                    runCatching { CookieManagerCompat.getCookieInfo(manager, url) }.getOrNull() else null
+                val captured = NetworkCookies.browserEntries(url.toHttpUrl(), full, manager.getCookie(url))
+                for (index in 0 until captured.length()) cookies.put(captured.getJSONObject(index))
             }
             if (cookies.length() == 0) return@evaluateJavascript
             checking = true; error = "正在验证校园网会话…"
             lifecycleScope.launch {
-                try { withContext(Dispatchers.IO) { school.importNetwork(JSONObject().put("scope", accountHash("network|$identifier")).put("cookies", cookies).put("savedAt", System.currentTimeMillis())) }; done() }
+                val agent = view.settings.userAgentString
+                try { withContext(Dispatchers.IO) { school.importNetwork(JSONObject().put("scope", accountHash("network|$identifier")).put("cookies", cookies)
+                    .put("cookieSchemaVersion", NetworkCookies.schema).put("userAgent", agent).put("savedAt", System.currentTimeMillis())) }; done() }
                 catch (e: Exception) { error = explanation(e) }
                 finally { checking = false }
             }

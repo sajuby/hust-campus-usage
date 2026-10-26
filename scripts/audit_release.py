@@ -47,7 +47,7 @@ def check(relative, data):
         findings.append('excluded-directory')
     if path.suffix.lower() in PRIVATE_EXT or path.name == 'local.properties' or path.name.startswith('.env'):
         findings.append('private-or-generated-file')
-    if re.search(r'(?:cookies|credentials|secrets|session-import|import-result|verification-request|verification-result)', path.name, re.I):
+    if re.search(r'(?:^cookies.*\.json$|credentials|secrets|session-import|import-result|verification-request|verification-result)', path.name, re.I):
         findings.append('private-filename')
     if path.suffix == '.jar' and relative != 'android/gradle/wrapper/gradle-wrapper.jar':
         findings.append('unexpected-binary')

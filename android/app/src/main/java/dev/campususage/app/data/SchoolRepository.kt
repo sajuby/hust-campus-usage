@@ -20,7 +20,7 @@ class SchoolRepository(context: Context) {
     fun snapshot(): SchoolSnapshot {
         val waxyScope = sessions.read("waxy")?.optString("scope")?.takeIf { it.isNotBlank() }
         val networkScope = sessions.read("network")?.optString("scope")?.takeIf { it.isNotBlank() }
-        return SchoolSnapshot(waxyScope != null, networkScope != null,
+        return SchoolSnapshot(waxyScope != null, networkScope != null && sessions.read("network")?.optBoolean("reauthRequired") != true,
             waxyScope?.let { cache.daily(it).map(DailyEntity::model) } ?: emptyList(),
             networkScope?.let { cache.network(it)?.let { e -> NetworkSnapshotJson.decode(e.snapshot) } })
     }

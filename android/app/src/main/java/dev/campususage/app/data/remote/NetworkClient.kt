@@ -3,71 +3,85 @@ package dev.campususage.app.data.remote
 import dev.campususage.app.core.model.*
 import dev.campususage.app.data.auth.*
 import okhttp3.*
-import org.json.JSONArray
-import org.json.JSONObject
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.jsoup.Jsoup
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
-class SchoolCookieJar(private val sessions: SessionStorage) : CookieJar {
-    @Synchronized override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-        if (url.host !in setOf("hkwxy.hust.edu.cn", "pass.hust.edu.cn")) return
-        val state = sessions.read("network") ?: return
-        val saved = state.optJSONArray("cookies") ?: JSONArray()
-        val map = mutableMapOf<String, Pair<String, Cookie>>()
-        for (i in 0 until saved.length()) {
-            val item = saved.getJSONObject(i); val origin = item.optString("origin")
-            if (origin !in setOf("hkwxy.hust.edu.cn", "pass.hust.edu.cn")) continue
-            Cookie.parse(HttpUrl.Builder().scheme("https").host(origin).build(), item.getString("raw"))?.let { map["${it.domain}|${it.path}|${it.name}"] = origin to it }
-        }
-        cookies.forEach { map["${it.domain}|${it.path}|${it.name}"] = url.host to it }
-        val merged = JSONArray()
-        map.values.filter { it.second.expiresAt > System.currentTimeMillis() }.forEach { (origin, cookie) -> merged.put(JSONObject().put("origin", origin).put("raw", cookie.toString())) }
-        state.put("cookies", merged); sessions.write("network", state)
-    }
-    @Synchronized override fun loadForRequest(url: HttpUrl): List<Cookie> {
-        if (url.host !in setOf("hkwxy.hust.edu.cn", "pass.hust.edu.cn")) return emptyList()
-        val cookies = sessions.read("network")?.optJSONArray("cookies") ?: return emptyList()
-        return (0 until cookies.length()).mapNotNull { index ->
-            val item = cookies.getJSONObject(index)
-            // Parse against its own origin to preserve host-only cookies correctly.
-            val origin = item.optString("origin")
-            if (origin !in setOf("hkwxy.hust.edu.cn", "pass.hust.edu.cn")) null
-            else Cookie.parse(HttpUrl.Builder().scheme("https").host(origin).build(), item.getString("raw"))
-                ?.takeIf { it.expiresAt > System.currentTimeMillis() && it.matches(url) }
-        }.distinctBy { "${it.name}|${it.domain}|${it.path}" }
-    }
-}
-
-class NetworkClient(private val sessions: SessionStorage) {
+class NetworkClient(
+    private val sessions: SessionStorage,
+    transport: OkHttpClient = OkHttpClient(),
+    private val queryUrl: HttpUrl = QUERY_URL.toHttpUrl(),
+    private val entryUrl: HttpUrl = LOGIN_URL.toHttpUrl()
+) {
     companion object {
         const val LOGIN_URL = "https://hkwxy.hust.edu.cn/tp_up/v2#act=apps/campusNetwork/servicePlan"
         const val QUERY_URL = "https://hkwxy.hust.edu.cn/tp_up/apps/campusNetwork/servicePlan"
     }
-    private val http = OkHttpClient.Builder().cookieJar(SchoolCookieJar(sessions)).connectTimeout(15, TimeUnit.SECONDS)
+    private val http = transport.newBuilder().cookieJar(SchoolCookieJar(sessions)).connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS).callTimeout(40, TimeUnit.SECONDS).retryOnConnectionFailure(false)
-        .addNetworkInterceptor { chain ->
-            val url = chain.request().url
-            if (url.scheme != "https" || url.host !in setOf("hkwxy.hust.edu.cn", "pass.hust.edu.cn")) throw SchoolFailure("学校认证跳转到了未支持的站点，请使用官方入口核对")
-            chain.proceed(chain.request())
-        }.build()
+        .followRedirects(false).followSslRedirects(false).build()
+    private data class Page(val url: HttpUrl, val status: Int, val html: String)
+    private fun read(url: HttpUrl, userAgent: String): Page {
+        var next = url
+        repeat(8) {
+            if (!NetworkCookies.allowed(next) || next.port !in setOf(queryUrl.port, entryUrl.port) || next.username.isNotEmpty() || next.password.isNotEmpty())
+                throw SchoolFailure("学校认证跳转到了未支持的站点，请使用官方入口核对")
+            http.newCall(Request.Builder().url(next).header("Accept", "text/html").header("User-Agent", userAgent).build()).execute().use { response ->
+                if (response.code in setOf(301, 302, 303, 307, 308)) {
+                    next = response.header("Location")?.let { next.resolve(it) }
+                        ?: throw SchoolFailure("学校认证跳转不完整，请稍后重试")
+                } else {
+                    val body = response.body
+                    val source = body?.source()
+                    source?.request(2_000_001)
+                    if ((source?.buffer?.size ?: 0) > 2_000_000) throw SchoolFailure("学校查询页面异常，保留此前记录")
+                    return Page(next, response.code, source?.readString(body?.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8).orEmpty())
+                }
+            }
+        }
+        throw SchoolFailure("学校认证跳转次数异常，已停止重试，保留此前记录")
+    }
+    private fun authentication(page: Page): Boolean {
+        if (page.status in setOf(401, 403)) return true
+        if (page.status !in 200..299) return false
+        val document = Jsoup.parse(page.html)
+        return page.url.host == "pass.hust.edu.cn" || document.selectFirst("form#fm1, form[action*='/cas/login']") != null ||
+            (document.selectFirst("input[type=password]") != null && page.html.contains("统一身份认证"))
+    }
+    private fun requireAuthentication(): Nothing {
+        sessions.read("network")?.let { state -> state.put("reauthRequired", true); sessions.write("network", state) }
+        throw AuthenticationRequired("校园网登录已失效，请完成学校统一认证；已有查询记录保留")
+    }
+    private fun parse(page: Page): NetworkUsage {
+        if (authentication(page)) requireAuthentication()
+        if (page.status !in 200..299) throw SchoolFailure("校园网查询暂不可用（HTTP ${page.status}），保留此前记录")
+        return NetworkParser.parse(page.html)
+    }
 
     @Synchronized fun fetch(): Pair<String, NetworkUsage> {
-        val scope = sessions.read("network")?.optString("scope")?.takeIf { it.isNotBlank() }
+        val saved = sessions.read("network")
+        val scope = saved?.optString("scope")?.takeIf { it.isNotBlank() }
             ?: throw AuthenticationRequired("请先连接校园网统一认证")
-        http.newCall(Request.Builder().url(QUERY_URL).header("Accept", "text/html").build()).execute().use { response ->
-            if (response.code == 401 || response.urlHost() == "pass.hust.edu.cn") throw AuthenticationRequired("校园网会话需要恢复，请完成学校统一认证")
-            if (!response.isSuccessful) throw SchoolFailure("校园网查询暂不可用（HTTP ${response.code}）")
-            val html = response.body?.string() ?: throw SchoolFailure("学校返回了空页面")
-            if (Jsoup.parse(html).selectFirst("#servicePlanApp") == null) {
-                if (html.contains("/cas/") || html.contains("统一身份认证")) throw AuthenticationRequired("校园网会话需要恢复，请完成学校统一认证")
-                throw SchoolFailure("学校套餐页面结构已变化，请稍后核对官方入口")
-            }
-            return scope to NetworkParser.parse(html)
-        }
+        val agent = saved.optString("userAgent").takeIf { it.isNotBlank() && it.length <= 1024 && '\r' !in it && '\n' !in it } ?: "CampusUsage/0.5.1"
+        val initial = read(queryUrl, agent)
+        val value = if (initial.status in setOf(401, 403, 500) || authentication(initial)) {
+            // A business 500 can mean an expired session. Probe the real entry, never assume all 500s are authentication failures.
+            val entry = read(entryUrl, agent)
+            if (authentication(entry)) requireAuthentication()
+            if (entry.status !in 200..299) throw SchoolFailure("学校认证入口暂不可用（HTTP ${entry.status}），保留此前记录")
+            val principal = Regex("""\bid_number\s*=\s*["']([^"'\\\r\n]{1,128})["']""").find(entry.html)?.groupValues?.get(1)
+            if (principal != null && accountHash("network|$principal") != scope) requireAuthentication()
+            // One recovery pass, one retry; a second server failure is not converted into an endless login loop.
+            parse(read(queryUrl, agent))
+        } else parse(initial)
+        val current = sessions.read("network")
+        if (current?.optString("scope") != scope) throw SchoolFailure("校园网账户已切换，本次查询未应用")
+        current.put("reauthRequired", false).put("lastVerifiedAt", System.currentTimeMillis())
+        sessions.write("network", current)
+        return scope to value
     }
-    private fun Response.urlHost() = request.url.host
 }
 
 object NetworkParser {

@@ -126,6 +126,10 @@ class UsageViewModel(application: Application) : AndroidViewModel(application) {
                 // A binding or account may have changed before a later request failed.
                 // Reload only the current scope instead of retaining the old room's UI.
                 if (!demo) try { load() } catch (_: Exception) { readings.clear(); networkUsage = null }
+                if (failure is AuthenticationRequired && requestedCategory == Category.NETWORK) {
+                    networkConnected = false
+                    authRequest = "network"
+                }
                 message = when (failure) {
                     is SchoolFailure -> failure.explanation
                     is java.io.IOException -> "网络连接失败，保留此前学校数据，可稍后再更新"
